@@ -2,6 +2,7 @@
 
 from Tank.Plugins.Aggregator import AggregateResultListener, AggregatorPlugin
 from tankcore import AbstractPlugin
+from collections import defaultdict
 #import logging
 #import string
 
@@ -18,7 +19,7 @@ class StaticGraphsPlugin(AbstractPlugin, AggregateResultListener):
     def __init__(self, core):
         AbstractPlugin.__init__(self, core)
         self.overall_data = []
-        self.cases_data = {}
+        self.cases_data = defaultdict(list)
 
     @staticmethod
     def __analyse(time, data):
@@ -54,10 +55,9 @@ class StaticGraphsPlugin(AbstractPlugin, AggregateResultListener):
         """
         self.overall_data.append((StaticGraphsPlugin.__analyze(data.time, data.overall)))
         for k, v in data.cases:
-            if not (k in self.cases_data):
-                self.cases_data[k] = []
             self.cases_data[k].append((StaticGraphsPlugin.__analyze(data.time, v)))
 
     def post_process(self, retcode):
-        for data in self.overall_data:
-            print data
+        with open('graph_data.dat', 'w') as datafile:
+            for data in self.overall_data:
+                datafile.write("\t".join(data))
