@@ -3,7 +3,7 @@
 from Tank.Plugins.Aggregator import AggregateResultListener, AggregatorPlugin
 from tankcore import AbstractPlugin
 from collections import defaultdict
-#import logging
+import logging
 #import string
 
 
@@ -18,11 +18,12 @@ class StaticGraphsPlugin(AbstractPlugin, AggregateResultListener):
 
     def __init__(self, core):
         AbstractPlugin.__init__(self, core)
+        self.log = logging.getLogger(__name__)
         self.overall_data = []
         self.cases_data = defaultdict(list)
 
     @staticmethod
-    def __analyse(time, data):
+    def __analyze(time, data):
         return (
             time,
             data.planned_requests,
@@ -48,16 +49,18 @@ class StaticGraphsPlugin(AbstractPlugin, AggregateResultListener):
         #file_prefix = self.get_option("file_prefix", "")
         aggregator = self.core.get_plugin_of_type(AggregatorPlugin)
         aggregator.add_result_listener(self)
+        self.log.info("Configured StaticGraphs plugin")
 
     def aggregate_second(self, data):
         """
         @data: SecondAggregateData
         """
-        self.overall_data.append((StaticGraphsPlugin.__analyze(data.time, data.overall)))
-        for k, v in data.cases:
-            self.cases_data[k].append((StaticGraphsPlugin.__analyze(data.time, v)))
+        self.overall_data.append(StaticGraphsPlugin.__analyze(data.time, data.overall))
+        for k, v in data.cases.iteritems():
+            self.cases_data[k].append(StaticGraphsPlugin.__analyze(data.time, v))
 
     def post_process(self, retcode):
+        self.log.info("Writing aggregated data to a file")
         with open('graph_data.dat', 'w') as datafile:
             for data in self.overall_data:
-                datafile.write("\t".join(data))
+                datafile.write(str(data))  # first column is datetime
