@@ -4,6 +4,10 @@ from Tank.Plugins.Aggregator import AggregateResultListener, AggregatorPlugin
 from tankcore import AbstractPlugin
 from collections import defaultdict
 import logging
+import time
+import numpy as np
+import matplotlib.pyplot as plt
+#import matplotlib.dates as mdates
 #import string
 
 
@@ -23,9 +27,9 @@ class StaticGraphsPlugin(AbstractPlugin, AggregateResultListener):
         self.cases_data = defaultdict(list)
 
     @staticmethod
-    def __analyze(time, data):
+    def __analyze(timestamp, data):
         return (
-            time,
+            int(time.mktime(timestamp.timetuple())),
             data.planned_requests,
             data.active_threads,
             data.selfload,
@@ -37,7 +41,7 @@ class StaticGraphsPlugin(AbstractPlugin, AggregateResultListener):
             data.avg_send_time,
             data.avg_latency,
             data.avg_receive_time,
-            data.avg_response_time
+            data.avg_response_time,
         ) + tuple(data.quantiles)
         #    data.http_codes,
         #    data.net_codes,
@@ -60,7 +64,15 @@ class StaticGraphsPlugin(AbstractPlugin, AggregateResultListener):
             self.cases_data[k].append(StaticGraphsPlugin.__analyze(data.time, v))
 
     def post_process(self, retcode):
+        self.log.info("Plotting data")
+        StaticGraphsPlugin.__plot(self.overall_data)
         self.log.info("Writing aggregated data to a file")
         with open('graph_data.dat', 'w') as datafile:
             for data in self.overall_data:
-                datafile.write(str(data))  # first column is datetime
+                datafile.write("\t".join(str(element) for element in data) + "\n")
+
+    @staticmethod
+    def __plot(data):
+        np_data = np.array(data)
+        plt.plot(np_data[:, 1:])
+        plt.savefig('graph.png')
